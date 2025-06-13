@@ -3,7 +3,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "../ui/Card"
 import { Badge } from "../ui/Badge"
 import { Button } from "../ui/Button"
-import { Download } from "lucide-react"
+import { Clock } from "lucide-react"
 
 export default function PayslipCard({
   payslip,
@@ -13,19 +13,6 @@ export default function PayslipCard({
   headerTextColor,
   bgColor = "bg-white",
 }) {
-  const handleDownload = () => {
-    if (payslip.archivo_pdf) {
-      // Si hay un archivo PDF, descargarlo
-      const link = document.createElement("a")
-      link.href = `http://localhost:8000/storage/${payslip.archivo_pdf}`
-      link.download = `nomina_${payslip.period.replace(" ", "_")}.pdf`
-      link.click()
-    } else {
-      // Si no hay archivo PDF, mostrar mensaje
-      alert("El archivo PDF no está disponible para esta nómina")
-    }
-  }
-
   const getStatusBadge = (status) => {
     if (status === "Cobrada") {
       return <Badge className="bg-green-500 text-white">{status}</Badge>
@@ -57,10 +44,13 @@ export default function PayslipCard({
             <p className="font-medium">Estado</p>
             {getStatusBadge(payslip.status)}
           </div>
-          <Button className={`w-full mt-4 ${buttonColor}`} onClick={handleDownload} disabled={!payslip.archivo_pdf}>
-            <Download className="mr-2 h-4 w-4" />
-            {payslip.archivo_pdf ? "Descargar PDF" : "PDF no disponible"}
+          <Button className={`w-full mt-4 opacity-70 ${buttonColor}`} disabled={true}>
+            <Clock className="mr-2 h-4 w-4" />
+            Upcoming
           </Button>
+          <p className="text-xs text-center text-gray-500 mt-1">
+            La visualización de PDFs estará disponible próximamente
+          </p>
         </div>
       </CardContent>
     </Card>

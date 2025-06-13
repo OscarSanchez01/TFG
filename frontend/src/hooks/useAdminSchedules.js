@@ -91,6 +91,52 @@ export function useAdminSchedules() {
       console.log("New Status:", newStatus)
       console.log("Token:", token ? `${token.substring(0, 15)}...` : "No token")
 
+      // Solo verificar horarios duplicados si estamos aprobando un horario
+      if (newStatus === "aceptado") {
+        // Primero, obtener los detalles del horario que estamos aprobando
+        const scheduleToApprove = schedules.find((schedule) => schedule.id === scheduleId)
+
+        if (!scheduleToApprove) {
+          throw new Error("No se encontró el horario a aprobar")
+        }
+
+        console.log("Horario a aprobar:", scheduleToApprove)
+
+        // Buscar si hay otros horarios del mismo empleado en la misma fecha
+        const duplicateSchedules = schedules.filter(
+          (schedule) =>
+            schedule.id !== scheduleId && // No es el mismo horario
+            schedule.employeeId === scheduleToApprove.employeeId && // Mismo empleado
+            schedule.date === scheduleToApprove.date && // Misma fecha
+            schedule.status === "aceptado", // Solo considerar horarios ya aceptados
+        )
+
+        console.log("Horarios duplicados encontrados:", duplicateSchedules)
+
+        // Si hay horarios duplicados, eliminarlos primero
+        for (const duplicateSchedule of duplicateSchedules) {
+          console.log(`Eliminando horario duplicado ID: ${duplicateSchedule.id}`)
+
+          const deleteResponse = await fetch(`http://localhost:8000/api/horarios/${duplicateSchedule.id}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          })
+
+          if (!deleteResponse.ok) {
+            console.error(`Error al eliminar horario duplicado ID: ${duplicateSchedule.id}`)
+            console.error("Status:", deleteResponse.status)
+            const errorText = await deleteResponse.text()
+            console.error("Response:", errorText)
+            // Continuamos con la aprobación aunque falle la eliminación
+          } else {
+            console.log(`✅ Horario duplicado ID: ${duplicateSchedule.id} eliminado correctamente`)
+          }
+        }
+      }
+
       // Usar endpoints específicos para aceptar/rechazar con POST
       let url
       let method = "POST" // Cambiar a POST

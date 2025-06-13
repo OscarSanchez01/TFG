@@ -14,10 +14,19 @@ export default function AdminSchedules({ company }) {
   const handleStatusUpdate = async (scheduleId, newStatus) => {
     try {
       await updateScheduleStatus(scheduleId, newStatus)
-      toast({
-        title: "Estado actualizado",
-        description: `La solicitud de horario ha sido ${newStatus === "aceptado" ? "aceptada" : "rechazada"}`,
-      })
+
+      if (newStatus === "aceptado") {
+        toast({
+          title: "Horario aceptado",
+          description:
+            "La solicitud de horario ha sido aceptada. Si existía un horario previo para esta fecha, ha sido eliminado.",
+        })
+      } else {
+        toast({
+          title: "Estado actualizado",
+          description: `La solicitud de horario ha sido ${newStatus === "aceptado" ? "aceptada" : "rechazada"}`,
+        })
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -40,7 +49,15 @@ export default function AdminSchedules({ company }) {
   }
 
   const pendingSchedules = schedules.filter((schedule) => schedule.status === "pendiente")
-  const processedSchedules = schedules.filter((schedule) => schedule.status !== "pendiente")
+
+  // Filtrar y ordenar las solicitudes procesadas (las más recientes primero)
+  const processedSchedules = schedules
+    .filter((schedule) => schedule.status !== "pendiente")
+    .sort((a, b) => {
+      // Ordenar por ID de forma descendente (asumiendo que IDs más altos son más recientes)
+      // También podríamos ordenar por fecha si estuviera disponible
+      return b.id - a.id
+    })
 
   if (loading) {
     return (
@@ -142,11 +159,11 @@ export default function AdminSchedules({ company }) {
         </CardContent>
       </Card>
 
-      {/* Solicitudes Procesadas */}
+      {/* Solicitudes Procesadas - Sin contador y ordenadas con las más recientes arriba */}
       {processedSchedules.length > 0 && (
         <Card bgColor={company.colors.cardBackground}>
           <CardHeader className={`${company.colors.cardHeader} ${company.colors.cardHeaderText}`}>
-            <CardTitle>Solicitudes Procesadas ({processedSchedules.length})</CardTitle>
+            <CardTitle>Solicitudes Procesadas</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="space-y-4">

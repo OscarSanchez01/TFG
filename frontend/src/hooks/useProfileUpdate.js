@@ -131,13 +131,67 @@ export function useProfileUpdate() {
         }
       }
 
-      // 3. VERIFICAR SI HUBO ALGUNA ACTUALIZACIÓN
+      // 3. ACTUALIZAR CONTRASEÑA (si se proporciona)
+      if (userData.currentPassword && userData.newPassword) {
+        console.log("=== UPDATING PASSWORD ===")
+
+        try {
+          // Primero verificamos la contraseña actual (esto es una buena práctica aunque la API no lo requiera)
+          // Nota: Como la API no tiene un endpoint específico para verificar la contraseña actual,
+          // simplemente procedemos con la actualización
+
+          // Usamos el mismo endpoint que para actualizar el nombre, pero con el campo password
+          const passwordData = {
+            password: userData.newPassword,
+          }
+
+          const passwordResponse = await fetch(`http://localhost:8000/api/empleados/${userId}`, {
+            method: "PUT", // O PATCH, ambos funcionan según la documentación
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify(passwordData),
+          })
+
+          if (!passwordResponse.ok) {
+            const errorText = await passwordResponse.text()
+            console.error("Password update failed:", errorText)
+            throw new Error(`Error al actualizar la contraseña: ${passwordResponse.status}`)
+          }
+
+          const passwordResult = await passwordResponse.json()
+          console.log("Password update result:", passwordResult)
+
+          if (passwordResult.status === "success") {
+            updateSuccess = true
+            console.log("✅ Password updated successfully")
+
+            // Actualizar datos del usuario si la respuesta incluye información actualizada
+            if (passwordResult.data) {
+              if (passwordResult.data.name) finalUserData.name = passwordResult.data.name
+              if (passwordResult.data.email) finalUserData.email = passwordResult.data.email
+              if (passwordResult.data.id) finalUserData.id = passwordResult.data.id
+              if (passwordResult.data.image) {
+                finalUserData.image = passwordResult.data.image
+                finalUserData.imageUrl = `http://localhost:8000/storage/${passwordResult.data.image}`
+              }
+            }
+          }
+        } catch (passwordError) {
+          console.error("❌ Password update failed:", passwordError)
+          throw new Error(passwordError.message || "Error al actualizar la contraseña")
+        }
+      }
+
+      // 4. VERIFICAR SI HUBO ALGUNA ACTUALIZACIÓN
       if (!updateSuccess) {
         console.log("⏭️ No changes to update")
         return { success: true, message: "No hay cambios para guardar", data: user }
       }
 
-      // 4. ACTUALIZAR CONTEXTO Y STORAGE
+      // 5. ACTUALIZAR CONTEXTO Y STORAGE
       console.log("=== FINAL UPDATE ===")
       console.log("Final user data:", finalUserData)
 

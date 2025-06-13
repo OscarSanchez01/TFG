@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardHeader, CardTitle, CardContent } from "../../ui/Card"
 import { Button } from "../../ui/Button"
 import { Modal, ModalHeader, ModalContent, ModalFooter } from "../../ui/Modal"
-import { UserPlus, Users, Building, Edit, Trash2, X, Save, AlertTriangle, Skull } from "lucide-react"
+import { UserPlus, Users, Building, Edit, Trash2, X, Save, AlertTriangle, Skull, Key } from "lucide-react"
 import { useToast } from "../../../hooks/useToast"
 import { useAuth } from "../../../contexts/AuthContext"
 import { useSessionData } from "../../../hooks/useSessionData"
@@ -18,15 +18,19 @@ export default function AdminHiring({ company }) {
   const [deletingEmployee, setDeletingEmployee] = useState(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [employeeToDelete, setEmployeeToDelete] = useState(null)
+  const [resettingPassword, setResettingPassword] = useState(null)
   const { token } = useAuth()
   const { userData, companyData } = useSessionData()
   const { toast } = useToast()
+
+  // Contraseña por defecto segura
+  const DEFAULT_PASSWORD = "Password123!"
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     company_domain: "",
-    password: "password123", // Contraseña por defecto
+    password: DEFAULT_PASSWORD,
     rol: "empleado",
   })
 
@@ -217,7 +221,7 @@ export default function AdminHiring({ company }) {
         name: "",
         email: "",
         company_domain: "",
-        password: "password123",
+        password: DEFAULT_PASSWORD,
         rol: "empleado",
       })
 
@@ -304,6 +308,42 @@ export default function AdminHiring({ company }) {
   const handleCancelEdit = () => {
     setEditingEmployee(null)
     setEditFormData({})
+  }
+
+  // Función para restablecer la contraseña
+  const handleResetPassword = async (employeeId) => {
+    try {
+      setResettingPassword(employeeId)
+
+      const response = await fetch(`http://localhost:8000/api/empleados/${employeeId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ password: DEFAULT_PASSWORD }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok || result.status !== "success") {
+        throw new Error(result.message || "Error al restablecer la contraseña")
+      }
+
+      toast({
+        title: "Contraseña restablecida",
+        description: `La contraseña ha sido restablecida a "${DEFAULT_PASSWORD}"`,
+      })
+    } catch (error) {
+      console.error("Error resetting password:", error)
+      toast({
+        title: "Error",
+        description: error.message || "Error al restablecer la contraseña",
+      })
+    } finally {
+      setResettingPassword(null)
+    }
   }
 
   // Funciones para eliminar empleado
@@ -445,9 +485,8 @@ export default function AdminHiring({ company }) {
                   id="password"
                   name="password"
                   value={formData.password}
-                  onChange={handleInputChange}
-                  className="rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500"
-                  required
+                  className="rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:ring-blue-500 bg-gray-50"
+                  readOnly
                 />
               </div>
 
@@ -569,7 +608,7 @@ export default function AdminHiring({ company }) {
                                 <option value="administrador">Administrador</option>
                               </select>
                             </div>
-                            <div className="flex items-center space-x-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <Button
                                 size="sm"
                                 className="bg-green-500 hover:bg-green-600 text-white"
@@ -577,6 +616,19 @@ export default function AdminHiring({ company }) {
                               >
                                 <Save className="h-3 w-3 mr-1" />
                                 Guardar
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-amber-500 hover:bg-amber-600 text-white"
+                                onClick={() => handleResetPassword(employee.id)}
+                                disabled={resettingPassword === employee.id}
+                              >
+                                {resettingPassword === employee.id ? (
+                                  <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent mr-1" />
+                                ) : (
+                                  <Key className="h-3 w-3 mr-1" />
+                                )}
+                                Restablecer Contraseña
                               </Button>
                               <Button size="sm" variant="outline" onClick={handleCancelEdit}>
                                 <X className="h-3 w-3 mr-1" />
@@ -703,6 +755,29 @@ export default function AdminHiring({ company }) {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {/* Instrucciones */}
+      <Card bgColor={company.colors.cardBackground}>
+        <CardHeader className={`${company.colors.cardHeader} ${company.colors.cardHeaderText}`}>
+          <CardTitle>Instrucciones</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <ul className="text-sm text-blue-700 space-y-2">
+              <li>• El email se genera automáticamente basado en el nombre y empresa</li>
+              <li>• La contraseña por defecto es "{DEFAULT_PASSWORD}" (el empleado debe cambiarla)</li>
+              <li>• El rol por defecto es "empleado"</li>
+              <li>• No se pueden repetir emails</li>
+              <li>• El empleado será asignado a la empresa actual</li>
+              <li>• Todos los campos son obligatorios</li>
+              <li>• Los empleados se agrupan automáticamente por empresa</li>
+              <li>• Puedes editar o eliminar empleados usando los botones correspondientes</li>
+              <li>• Puedes restablecer la contraseña de un empleado a "{DEFAULT_PASSWORD}" si la ha olvidado</li>
+              <li>• La eliminación requiere confirmación y no se puede deshacer</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

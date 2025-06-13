@@ -5,6 +5,7 @@ import { Button } from "../ui/Button"
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/Avatar"
 import { useToast } from "../../hooks/useToast"
 import { useAdminAuth } from "../../hooks/useAdminAuth"
+import { useAuth } from "../../contexts/AuthContext"
 
 export default function Sidebar({
   company,
@@ -18,17 +19,50 @@ export default function Sidebar({
   const navigate = useNavigate()
   const { toast } = useToast()
   const { isAdmin } = useAdminAuth()
+  const { logout } = useAuth() // Importamos la función logout del contexto de autenticación
 
   const handleLogout = () => {
-    // Limpiar sessionStorage al hacer logout
-    sessionStorage.removeItem("userData")
-    sessionStorage.removeItem("companyData")
+    console.log("Iniciando proceso de logout desde Sidebar...")
 
+    // Mostrar toast antes de iniciar el proceso de logout
     toast({
-      title: "Logged out",
-      description: "You have been successfully logged out",
+      title: "Cerrando sesión",
+      description: "Cerrando sesión y limpiando datos...",
     })
-    navigate("/")
+
+    // Eliminar explícitamente cada elemento del sessionStorage
+    try {
+      console.log("Eliminando elementos del sessionStorage...")
+
+      // Primero, sobrescribir con valores vacíos
+      sessionStorage.setItem("token", "")
+      sessionStorage.setItem("user", "")
+      sessionStorage.setItem("userData", "")
+      sessionStorage.setItem("companyData", "")
+
+      // Luego eliminar cada elemento
+      sessionStorage.removeItem("token")
+      sessionStorage.removeItem("user")
+      sessionStorage.removeItem("userData")
+      sessionStorage.removeItem("companyData")
+
+      // Finalmente, limpiar todo el sessionStorage
+      sessionStorage.clear()
+
+      console.log("SessionStorage después de limpieza:", {
+        token: sessionStorage.getItem("token"),
+        user: sessionStorage.getItem("user"),
+        userData: sessionStorage.getItem("userData"),
+        companyData: sessionStorage.getItem("companyData"),
+      })
+    } catch (e) {
+      console.error("Error al limpiar sessionStorage:", e)
+    }
+
+    // Usar la función logout del contexto de autenticación
+    logout()
+
+    // No es necesario navegar aquí, ya que la función logout del contexto se encargará de la redirección
   }
 
   // Obtener el nombre del empleado con fallback

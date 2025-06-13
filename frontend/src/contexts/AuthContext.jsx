@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null)
       sessionStorage.removeItem("token")
       sessionStorage.removeItem("user")
+      sessionStorage.removeItem("userData")
       sessionStorage.removeItem("companyData")
 
       // Si el userData no tiene el campo image, intentar obtener los datos completos
@@ -71,14 +72,75 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = () => {
+    console.log("Ejecutando logout desde AuthContext...")
+
+    // Limpiar el estado del contexto
     setToken(null)
     setUser(null)
-    sessionStorage.clear() // Limpiar todo el sessionStorage
 
-    // Forzar recarga de la página para limpiar cualquier estado residual
-    setTimeout(() => {
-      window.location.href = "/"
-    }, 100)
+    // Función para limpiar completamente el sessionStorage
+    const clearAllStorage = () => {
+      try {
+        // 1. Primero, sobrescribir con valores vacíos
+        console.log("Sobrescribiendo valores en sessionStorage...")
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i)
+          if (key) {
+            sessionStorage.setItem(key, "")
+          }
+        }
+
+        // 2. Eliminar elementos específicos que sabemos que existen
+        console.log("Eliminando elementos específicos...")
+        sessionStorage.removeItem("token")
+        sessionStorage.removeItem("user")
+        sessionStorage.removeItem("userData")
+        sessionStorage.removeItem("companyData")
+
+        // 3. Limpiar todo el sessionStorage
+        console.log("Limpiando todo el sessionStorage...")
+        sessionStorage.clear()
+
+        // 4. Verificar que se haya limpiado
+        const remainingItems = sessionStorage.length
+        console.log(`Elementos restantes en sessionStorage: ${remainingItems}`)
+
+        if (remainingItems > 0) {
+          console.warn("Aún quedan elementos en sessionStorage después de limpiar")
+
+          // Listar los elementos restantes
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i)
+            console.warn(`- ${key}: ${sessionStorage.getItem(key)}`)
+          }
+
+          // Intentar un enfoque alternativo
+          console.log("Intentando enfoque alternativo...")
+
+          // Usar un iframe para limpiar el sessionStorage
+          const iframe = document.createElement("iframe")
+          iframe.style.display = "none"
+          document.body.appendChild(iframe)
+          iframe.contentWindow.sessionStorage.clear()
+          document.body.removeChild(iframe)
+        }
+      } catch (e) {
+        console.error("Error al limpiar sessionStorage:", e)
+      }
+    }
+
+    // Ejecutar la limpieza
+    clearAllStorage()
+
+    // Verificar una última vez
+    console.log("Verificación final - elementos en sessionStorage:", sessionStorage.length)
+
+    // Forzar recarga completa de la página para asegurar un estado limpio
+    console.log("Redirigiendo a la página de inicio...")
+
+    // Usar replace en lugar de href para evitar que quede en el historial
+    // y añadir un parámetro de timestamp para evitar caché
+    window.location.replace("/?logout=" + new Date().getTime())
   }
 
   return <AuthContext.Provider value={{ user, token, login, logout }}>{children}</AuthContext.Provider>

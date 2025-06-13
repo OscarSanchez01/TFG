@@ -16,7 +16,27 @@ export default function FullCalendarSchedule({ schedules, company, loading, erro
 
   // Convertir los horarios de la API al formato de FullCalendar
   const convertSchedulesToEvents = (schedules) => {
-    return schedules.map((schedule) => {
+    // Primero, filtrar los horarios que coinciden con días de vacaciones aprobadas
+    const filteredSchedules = schedules.filter((schedule) => {
+      const scheduleDate = new Date(schedule.fecha.split("T")[0])
+
+      // Verificar si este día coincide con alguna vacación aprobada
+      const hasApprovedVacation = vacations.some((vacation) => {
+        // Solo considerar vacaciones aprobadas
+        if (vacation.originalStatus !== "aprobada") return false
+
+        const vacationStart = new Date(vacation.startDate)
+        const vacationEnd = new Date(vacation.endDate)
+
+        // Verificar si la fecha del horario está dentro del rango de vacaciones
+        return scheduleDate >= vacationStart && scheduleDate <= vacationEnd
+      })
+
+      // Si hay vacaciones aprobadas para este día, no incluir el horario
+      return !hasApprovedVacation
+    })
+
+    return filteredSchedules.map((schedule) => {
       const date = schedule.fecha.split("T")[0] // Obtener solo la fecha YYYY-MM-DD
       const startDateTime = `${date}T${schedule.hora_inicio}:00`
       const endDateTime = `${date}T${schedule.hora_fin}:00`
